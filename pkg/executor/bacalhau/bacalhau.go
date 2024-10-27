@@ -203,15 +203,12 @@ func (executor *BacalhauExecutor) getJobID(
 	if err != nil {
 		return "", fmt.Errorf("error running command %s -> %s, %s", deal.ID, err.Error(), runOutputRaw)
 	}
-	splitOutputs := strings.Split(string(runOutputRaw), "\n")
-	runOutput := splitOutputs[0]
-	outputError := strings.Join(strings.Fields(strings.Join(splitOutputs[1:], " ")), " ")
 
-	if outputError != "" {
-		return "", fmt.Errorf("error running command %s -> %s, %s", deal.ID, outputError, runOutput)
+	id, err := parseBacalhauJobID(runOutputRaw)
+	if err != nil {
+		return "", fmt.Errorf("error parsing Bacalhau job ID %s -> %s", deal.ID, err.Error())
 	}
 
-	id := strings.TrimSpace(string(runOutput))
 	fmt.Printf("Got bacalhau job ID: %s\n", id)
 
 	return id, nil
@@ -241,6 +238,18 @@ func (executor *BacalhauExecutor) getJobState(dealID string, jobID string) (*bac
 	}
 
 	return &job, nil
+}
+
+func parseBacalhauJobID(output []byte) (string, error) {
+	splitOutputs := strings.Split(string(output), "\n")
+	runOutput := splitOutputs[0]
+	outputError := strings.Join(strings.Fields(strings.Join(splitOutputs[1:], " ")), " ")
+
+	if outputError != "" {
+		return "", fmt.Errorf("error in output: %s", outputError)
+	}
+
+	return strings.TrimSpace(runOutput), nil
 }
 
 // Compile-time interface check:
